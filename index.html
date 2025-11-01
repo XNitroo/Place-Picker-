@@ -1,0 +1,372 @@
+\<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Birthday Treat — Pick a Place</title>
+  <style>
+    :root{
+      --bg1:#FFDEE9; /* pink */
+      --bg2:#B5FFFC; /* aqua */
+      --card:#ffffff;
+      --accent:#FF6B81;
+      --muted:#6b6b6b;
+      --glass: rgba(255,255,255,0.65);
+      --shadow: 0 8px 24px rgba(107,84,164,0.12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      background: linear-gradient(135deg,var(--bg1) 0%, rgba(255,235,238,0.9) 40%, var(--bg2) 100%);
+      display:flex;align-items:center;justify-content:center;padding:32px;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      color:#222;
+    }
+    .card{
+      width:100%;max-width:920px;background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85));
+      border-radius:18px;padding:24px;box-shadow:var(--shadow);backdrop-filter: blur(6px);
+    }
+    header{display:flex;gap:16px;align-items:center}
+    .logo{
+      width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,var(--accent), #FF9AA2);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px;box-shadow:0 6px 18px rgba(255,107,129,0.18);
+    }
+    h1{margin:0;font-size:20px}
+    p.lead{margin:6px 0 12px;color:var(--muted)}
+
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    @media (max-width:820px){.grid{grid-template-columns:1fr}}
+
+    .option{
+      background:var(--card);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;border:2px solid transparent;transition:all .18s ease;box-shadow:0 6px 18px rgba(17,24,39,0.03);
+    }
+    .option:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(17,24,39,0.08)}
+    .option.selected{border-color:var(--accent);box-shadow:0 12px 30px rgba(255,107,129,0.08)}
+
+    .option .emoji{font-size:28px;width:48px;height:48px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(180deg, rgba(255,235,238,0.9), rgba(255,255,255,0.6));}
+    .option h3{margin:0;font-size:16px}
+    .option p{margin:4px 0 0;color:var(--muted);font-size:13px}
+
+    .custom{grid-column:1/-1;display:flex;gap:12px;align-items:center}
+    .custom input[type="text"]{flex:1;padding:12px;border-radius:10px;border:1px solid #eee;background:transparent}
+    .btn{background:linear-gradient(90deg,var(--accent),#FF9AA2);border:none;color:white;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 8px 20px rgba(255,107,129,0.14)}
+
+    .summary{margin-top:18px;padding:14px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));display:flex;align-items:center;justify-content:space-between}
+    .summary .text{font-size:15px}
+    .summary .pill{background:var(--accent);color:white;padding:8px 12px;border-radius:999px;font-weight:700}
+
+    footer{margin-top:18px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .notes{color:var(--muted);font-size:13px}
+
+    /* small heart animation */
+    .heart{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:rgba(255,107,129,0.12);}    
+    .heart svg{transform-origin:center;animation:beat 1.2s infinite}
+    @keyframes beat{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+    /* toast */
+    .toast{position:fixed;right:20px;bottom:20px;background:#111;color:white;padding:12px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(17,24,39,0.2);opacity:0;transform:translateY(12px);transition:all .24s}
+    .toast.show{opacity:1;transform:translateY(0)}
+
+    /* history list */
+    .history{margin-top:14px;border-radius:10px;padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.45));max-height:180px;overflow:auto}
+    .history-item{display:flex;justify-content:space-between;padding:8px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,0.6)}
+    .controls{display:flex;gap:8px;align-items:center}
+    .small{font-size:13px;color:var(--muted)}
+
+    .settings{margin-top:12px;display:flex;gap:8px;align-items:center}
+    .settings input{padding:8px;border-radius:8px;border:1px solid #eee;flex:1}
+    .toggle{font-size:13px;color:var(--muted)}
+
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <header>
+      <div class="logo">BT</div>
+      <div style="flex:1">
+        <h1>Birthday Treat — Pick a Place</h1>
+        <p class="lead">Make it special. Choose a place — I'll know what you picked and we'll plan it together. ❤️</p>
+      </div>
+      <div style="margin-left:auto" class="heart" aria-hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M12 21s-6.716-4.94-9.042-8.047C-0.226 7.94 4.5 3 8 6.5 9.694 8.194 12 10 12 10s2.306-1.806 4-3.5C19.5 3 24.226 7.94 21.042 12.953 18.716 16.06 12 21 12 21z" fill="currentColor" opacity="0.95"/>
+        </svg>
+      </div>
+    </header>
+
+    <main style="margin-top:18px">
+      <div class="grid" id="options">
+        <label class="option" data-value="Bowling" tabindex="0">
+          <div class="emoji">🎳</div>
+          <div>
+            <h3>Bowling</h3>
+            <p>Fun, casual and a little playful — perfect for laughs.</p>
+          </div>
+        </label>
+
+        <label class="option" data-value="Social" tabindex="0">
+          <div class="emoji">🍸</div>
+          <div>
+            <h3>Social</h3>
+            <p>Chill lounge or bar — music, small talk and good vibes.</p>
+          </div>
+        </label>
+
+        <label class="option" data-value="CP Street Food" tabindex="0">
+          <div class="emoji">🍢</div>
+          <div>
+            <h3>CP Street Food</h3>
+            <p>Classic Connaught Place food crawl — spicy, fun and memorable.</p>
+          </div>
+        </label>
+
+        <label class="option" data-value="Lodhi Garden" tabindex="0">
+          <div class="emoji">🌿</div>
+          <div>
+            <h3>Lodhi Garden</h3>
+            <p>Romantic walk in the historic gardens — calm, scenic and friendly.</p>
+          </div>
+        </label>
+
+        <div class="custom">
+          <input type="text" id="customPlace" placeholder="Add another nice Delhi place (e.g., Hauz Khas Village)" aria-label="Custom place" />
+          <button class="btn" id="addCustom">Add</button>
+        </div>
+      </div>
+
+      <div class="summary" id="summary" aria-live="polite">
+        <div class="text">No place selected yet. Choose one to let me know your pick.</div>
+        <div class="pill">—</div>
+      </div>
+
+      <!-- endpoint input hidden from UI to avoid exposing URL/token to viewers -->
+      <div style="display:none" class="settings" aria-hidden>
+        <input id="endpoint" placeholder="Remote endpoint (optional) e.g. Apps Script URL or webhook" />
+        <button class="btn" id="saveEndpoint">Save</button>
+      </div>
+
+      <footer style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="notes">Your choice will be recorded locally. (Remote delivery enabled — endpoint hidden for privacy.)</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="confirm">Confirm & Save</button>
+            <button class="btn" id="reset" style="background:transparent;color:var(--accent);border:1px solid rgba(255,107,129,0.18);font-weight:700">Reset</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="small">Selection history (local + remote result):</div>
+            <div class="small"> <button id="clearHistory" style="background:transparent;border:none;color:var(--accent);cursor:pointer">Clear</button></div>
+          </div>
+          <div class="history" id="history"></div>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <div class="toast" id="toast">Saved — she chose Bowling</div>
+
+  <script>
+    (function(){
+      // —— PROXY MODE (recommended):
+      // The client will call your serverless proxy (Netlify/Vercel). The proxy holds the Apps Script URL and SECRET
+      // so the secret is never visible in client code or the page source.
+      // Deploy the proxy (Netlify/Vercel) using the sample function included in the comments below.
+      // Once deployed, set the proxy URL in localStorage (or hardcode here temporarily) using the browser console.
+      // Example to set proxy URL in browser console on your hosted page:
+      // localStorage.setItem('bt-proxy','https://your-proxy.netlify.app/.netlify/functions/proxy');
+
+      const HARDCODE_PROXY = '';
+      const STORAGE_PROXY = localStorage.getItem('bt-proxy') || '';
+      const PROXY_ENDPOINT = STORAGE_PROXY || HARDCODE_PROXY;
+
+      /*
+      ===== Sample Netlify Function (JavaScript) =====
+      // Create file: netlify/functions/proxy.js
+      // Install nothing — Netlify supports plain JS functions.
+
+      const fetch = require('node-fetch'); // Netlify includes fetch in newer runtimes; if not, install node-fetch
+      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxCv9HicSg1Awzp6fzZDRK-eaHbC9SqDFRt9di7GpgLDrjUaMMIG7_HmevBClYEIEQ/exec';
+      const SECRET = process.env.BDAY_SECRET; // set this in Netlify site settings -> Build & deploy -> Environment
+
+      exports.handler = async function(event, context) {
+        if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
+        try {
+          const body = JSON.parse(event.body || '{}');
+          const place = body.place || '';
+          // optionally validate origin or add simple checks here
+
+          // forward to Apps Script with secret server-side
+          const resp = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ __token: SECRET, place, user: body.user || '', note: body.note || '' })
+          });
+          const text = await resp.text();
+          return { statusCode: resp.status, body: text };
+        } catch (err) {
+          return { statusCode: 500, body: JSON.stringify({ ok:false, error: err.message }) };
+        }
+      };
+
+      ===== Deploy notes =====
+      1. Create a Netlify site and push a repo with the function file at netlify/functions/proxy.js.
+      2. In Netlify site settings, add an environment variable BDAY_SECRET with the Apps Script SECRET value.
+      3. Deploy — Netlify will provide a function URL like https://<site>.netlify.app/.netlify/functions/proxy
+      4. Use that URL in the page (localStorage key 'bt-proxy') so the client calls the proxy.
+
+      This architecture keeps the Apps Script URL & SECRET private on the server.
+      */
+
+
+      const optionsRoot = document.getElementById('options');
+      const optionEls = Array.from(optionsRoot.querySelectorAll('.option'));
+      const summary = document.getElementById('summary');
+      const pill = summary.querySelector('.pill');
+      const text = summary.querySelector('.text');
+      const customInput = document.getElementById('customPlace');
+      const addBtn = document.getElementById('addCustom');
+      const confirm = document.getElementById('confirm');
+      const reset = document.getElementById('reset');
+      const toast = document.getElementById('toast');
+      const historyEl = document.getElementById('history');
+      const endpointInput = document.getElementById('endpoint');
+      const saveEndpointBtn = document.getElementById('saveEndpoint');
+      const clearHistoryBtn = document.getElementById('clearHistory');
+
+      let selected = null;
+      // read saved endpoint (but override with hardcode if present)
+      let endpoint = localStorage.getItem('bt-endpoint') || '';
+      endpointInput.value = endpoint;
+      
+
+      function renderSelection(){
+        if(!selected){
+          text.textContent = 'No place selected yet. Choose one to let me know your pick.';
+          pill.textContent = '—';
+        } else {
+          text.textContent = `She picked: ${selected}`;
+          pill.textContent = selected;
+        }
+      }
+
+      function loadHistory(){
+        const history = JSON.parse(localStorage.getItem('bt-history')||'[]');
+        historyEl.innerHTML = '';
+        if(history.length===0){ historyEl.innerHTML = '<div class="small">No selections yet</div>'; return; }
+        history.slice().reverse().forEach(item=>{
+          const d = document.createElement('div');
+          d.className = 'history-item';
+          d.innerHTML = `<div><strong>${escapeHtml(item.place)}</strong><div class="small">${new Date(item.timestamp).toLocaleString()}</div></div><div class="controls small">${item.remoteStatus?escapeHtml(item.remoteStatus):'local'}</div>`;
+          historyEl.appendChild(d);
+        });
+      }
+
+      function clearSelected(){
+        optionEls.forEach(el=>el.classList.remove('selected'));
+        selected = null; renderSelection();
+      }
+
+      optionEls.forEach(el=>{
+        el.addEventListener('click', ()=>{
+          optionEls.forEach(x=>x.classList.remove('selected'));
+          el.classList.add('selected');
+          selected = el.dataset.value;
+          renderSelection();
+        });
+        el.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
+        });
+      });
+
+      addBtn.addEventListener('click', ()=>{
+        const val = customInput.value.trim();
+        if(!val) return;
+        const lbl = document.createElement('label');
+        lbl.className = 'option selected';
+        lbl.setAttribute('data-value', val);
+        lbl.tabIndex = 0;
+        lbl.innerHTML = `<div class="emoji">📍</div><div><h3>${escapeHtml(val)}</h3><p>Custom pick</p></div>`;
+        optionEls.forEach(x=>x.classList.remove('selected'));
+        optionsRoot.appendChild(lbl);
+        optionEls.push(lbl);
+        selected = val;
+        renderSelection();
+        customInput.value = '';
+        lbl.addEventListener('click', ()=>{
+          optionEls.forEach(x=>x.classList.remove('selected'));
+          lbl.classList.add('selected'); selected = lbl.dataset.value; renderSelection();
+        });
+        lbl.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); lbl.click(); } });
+      });
+
+      saveEndpointBtn.addEventListener('click', ()=>{
+        endpoint = endpointInput.value.trim();
+        localStorage.setItem('bt-endpoint', endpoint);
+        showToast(endpoint? 'Endpoint saved' : 'Endpoint cleared');
+      });
+
+      confirm.addEventListener('click', ()=>{
+        if(!selected){ showToast('Please select a place first'); return; }
+        const payload = { timestamp: new Date().toISOString(), place: selected, __token: EFFECTIVE_TOKEN };
+        // store locally
+        const history = JSON.parse(localStorage.getItem('bt-history')||'[]');
+        history.push(payload);
+        localStorage.setItem('bt-history', JSON.stringify(history));
+        renderSelection();
+        loadHistory();
+
+        if(PROXY_ENDPOINT){
+          // send remote
+          fetch(PROXY_ENDPOINT, {
+            method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ place: selected })
+          }).then(async res=>{
+            let statusText = res.status + ' ' + res.statusText;
+            let bodyText = '';
+            try{
+              bodyText = await res.text();
+              try{ const j = JSON.parse(bodyText); statusText = j.ok? 'remote-ok' : (j.error||statusText); }
+              catch(e){ statusText = bodyText || statusText; }
+            } catch(e){ statusText = 'remote-parse-failed'; }
+
+            const h = JSON.parse(localStorage.getItem('bt-history')||'[]');
+            h[h.length-1].remoteStatus = statusText;
+            localStorage.setItem('bt-history', JSON.stringify(h));
+            loadHistory();
+            showToast(`Saved — she chose ${selected} (remote: ${statusText})`);
+          }).catch(err=>{
+            const h = JSON.parse(localStorage.getItem('bt-history')||'[]');
+            h[h.length-1].remoteStatus = 'remote-failed';
+            localStorage.setItem('bt-history', JSON.stringify(h));
+            loadHistory();
+            console.warn('Remote save failed', err);
+            showToast('Saved locally — remote failed');
+          });
+        } else {
+          showToast(`Saved — she chose ${selected}`);
+        }
+
+        console.log('Birthday Treat Selection saved:', payload);
+      });
+
+      reset.addEventListener('click', ()=>{ clearSelected(); showToast('Selection reset'); });
+
+      clearHistoryBtn.addEventListener('click', ()=>{ localStorage.removeItem('bt-history'); loadHistory(); showToast('History cleared'); });
+
+      function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2600); }
+      function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      // initial render
+      renderSelection(); loadHistory();
+
+      window.BT = {
+        getLatest: ()=>{ const h = JSON.parse(localStorage.getItem('bt-history')||'[]'); return h[h.length-1]||null },
+        getAll: ()=>JSON.parse(localStorage.getItem('bt-history')||'[]'),
+        clearHistory: ()=>{ localStorage.removeItem('bt-history'); showToast('History cleared') }
+      };
+
+    })();
+  </script>
+</body>
+</html>
