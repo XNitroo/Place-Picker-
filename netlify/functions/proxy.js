@@ -1,6 +1,7 @@
 // netlify/functions/proxy.js
 // Use global fetch (Netlify modern runtimes provide fetch)
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxCv9HicSg1Awzp6fzZDRK-eaHbC9SqDFRt9di7GpgLDrjUaMMIG7_HmevBClYEIEQ/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4hhNK1tEx2E1Us-EdgemK4W-wgaCl6jhQyXs7P05V5RFAvcPE6NBys32svUoGMPqO/exec';
+
 
 exports.handler = async function(event, context) {
   if (event.httpMethod !== 'POST') {
