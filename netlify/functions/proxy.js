@@ -1,15 +1,14 @@
 // netlify/functions/proxy.js
-// Proxy that forwards client -> Apps Script and returns CORS headers so browsers can call it.
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4hhNK1tEx2E1Us-EdgemK4W-wgaCl6jhQyXs7P05V5RFAvcPE6NBys32svUoGMPqO/exec';
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',                 // allow calls from your page (or restrict to your origin)
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type'
 };
 
 exports.handler = async function(event, context) {
-  // Respond to preflight immediately
+  // Handle preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS_HEADERS, body: '' };
   }
@@ -24,7 +23,6 @@ exports.handler = async function(event, context) {
     const user = body.user || '';
     const note = body.note || '';
 
-    // Forward to Apps Script with secret injected server-side
     const resp = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -32,18 +30,8 @@ exports.handler = async function(event, context) {
     });
 
     const text = await resp.text();
-
-    // Return Apps Script response back to client and include CORS headers
-    return {
-      statusCode: resp.status || 200,
-      headers: CORS_HEADERS,
-      body: text
-    };
+    return { statusCode: resp.status || 200, headers: CORS_HEADERS, body: text };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: CORS_HEADERS,
-      body: JSON.stringify({ ok: false, error: err.message })
-    };
+    return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ ok:false, error: err.message }) };
   }
 };
