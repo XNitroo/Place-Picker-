@@ -1,6 +1,5 @@
 // netlify/functions/proxy.js
-// Forward client POST -> Apps Script with SECRET stored server-side (Netlify env var)
-const fetch = require('node-fetch'); // keep for older runtimes; harmless if runtime has fetch
+// Use global fetch (Netlify modern runtimes provide fetch)
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxCv9HicSg1Awzp6fzZDRK-eaHbC9SqDFRt9di7GpgLDrjUaMMIG7_HmevBClYEIEQ/exec';
 
 exports.handler = async function(event, context) {
