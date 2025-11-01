@@ -1,19 +1,30 @@
 // netlify/functions/proxy.js
-// Use global fetch (Netlify modern runtimes provide fetch)
+// Proxy that forwards client -> Apps Script and returns CORS headers so browsers can call it.
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4hhNK1tEx2E1Us-EdgemK4W-wgaCl6jhQyXs7P05V5RFAvcPE6NBys32svUoGMPqO/exec';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',                 // allow calls from your page (or restrict to your origin)
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
 
 exports.handler = async function(event, context) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+  // Respond to preflight immediately
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: CORS_HEADERS, body: '' };
   }
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers: CORS_HEADERS, body: 'Method Not Allowed' };
+  }
+
   try {
     const body = JSON.parse(event.body || '{}');
     const place = body.place || '';
     const user = body.user || '';
     const note = body.note || '';
 
-    // Forward to Apps Script with secret server-side
+    // Forward to Apps Script with secret injected server-side
     const resp = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -21,12 +32,18 @@ exports.handler = async function(event, context) {
     });
 
     const text = await resp.text();
+
+    // Return Apps Script response back to client and include CORS headers
     return {
-      statusCode: resp.status,
-      headers: { 'Content-Type': 'text/plain' },
+      statusCode: resp.status || 200,
+      headers: CORS_HEADERS,
       body: text
     };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ ok:false, error: err.message }) };
+    return {
+      statusCode: 500,
+      headers: CORS_HEADERS,
+      body: JSON.stringify({ ok: false, error: err.message })
+    };
   }
 };
