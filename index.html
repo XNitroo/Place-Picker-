@@ -168,205 +168,177 @@
   <div class="toast" id="toast">Saved — she chose Bowling</div>
 
   <script>
-    (function(){
-      // —— PROXY MODE (recommended):
-      // The client will call your serverless proxy (Netlify/Vercel). The proxy holds the Apps Script URL and SECRET
-      // so the secret is never visible in client code or the page source.
-      // Deploy the proxy (Netlify/Vercel) using the sample function included in the comments below.
-      // Once deployed, set the proxy URL in localStorage (or hardcode here temporarily) using the browser console.
-      // Example to set proxy URL in browser console on your hosted page:
-      // localStorage.setItem('bt-proxy','https://your-proxy.netlify.app/.netlify/functions/proxy');
+(function(){
+  // ---- Config & runtime values ----
+  const HARDCODE_PROXY = ''; // keep empty for safety
+  const STORAGE_PROXY = (typeof localStorage !== 'undefined') ? localStorage.getItem('bt-proxy') || '' : '';
+  const PROXY_ENDPOINT = STORAGE_PROXY || HARDCODE_PROXY;
 
-      const HARDCODE_PROXY = '';
-      const STORAGE_PROXY = localStorage.getItem('bt-proxy') || '';
-      const PROXY_ENDPOINT = STORAGE_PROXY || HARDCODE_PROXY;
+  // owner mode detection
+  const urlParams = (typeof URLSearchParams !== 'undefined') ? new URLSearchParams(window.location.search) : null;
+  const OWNER_MODE = urlParams ? urlParams.get('owner') === '1' : false;
 
-      /*
-      ===== Sample Netlify Function (JavaScript) =====
-      // Create file: netlify/functions/proxy.js
-      // Install nothing — Netlify supports plain JS functions.
+  // DOM refs (safe-get)
+  const optionsRoot = document.getElementById('options');
+  const optionEls = Array.from(optionsRoot.querySelectorAll('.option'));
+  const summary = document.getElementById('summary');
+  const pill = summary.querySelector('.pill');
+  const text = summary.querySelector('.text');
+  const customInput = document.getElementById('customPlace');
+  const addBtn = document.getElementById('addCustom');
+  const confirm = document.getElementById('confirm');
+  const reset = document.getElementById('reset');
+  const toast = document.getElementById('toast');
+  const historyEl = document.getElementById('history');
+  const ownerSettingsEl = document.getElementById('ownerSettings');
+  const endpointInput = document.getElementById('endpoint');
+  const tokenInputEl = document.getElementById('tokenInput');
+  const saveEndpointBtn = document.getElementById('saveEndpoint');
+  const clearHistoryBtn = document.getElementById('clearHistory');
 
-      const fetch = require('node-fetch'); // Netlify includes fetch in newer runtimes; if not, install node-fetch
-      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxCv9HicSg1Awzp6fzZDRK-eaHbC9SqDFRt9di7GpgLDrjUaMMIG7_HmevBClYEIEQ/exec';
-      const SECRET = process.env.BDAY_SECRET; // set this in Netlify site settings -> Build & deploy -> Environment
+  let selected = null;
 
-      exports.handler = async function(event, context) {
-        if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
-        try {
-          const body = JSON.parse(event.body || '{}');
-          const place = body.place || '';
-          // optionally validate origin or add simple checks here
+  // show owner settings if ?owner=1
+  if (OWNER_MODE && ownerSettingsEl) {
+    ownerSettingsEl.style.display = 'flex';
+    ownerSettingsEl.style.flexDirection = 'column';
+    endpointInput.value = localStorage.getItem('bt-proxy') || '';
+    tokenInputEl.value = localStorage.getItem('bt-token') || '';
+  }
 
-          // forward to Apps Script with secret server-side
-          const resp = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ __token: SECRET, place, user: body.user || '', note: body.note || '' })
-          });
-          const text = await resp.text();
-          return { statusCode: resp.status, body: text };
-        } catch (err) {
-          return { statusCode: 500, body: JSON.stringify({ ok:false, error: err.message }) };
-        }
-      };
+  function renderSelection(){
+    if(!selected){
+      text.textContent = 'No place selected yet. Choose one to let me know your pick.';
+      pill.textContent = '—';
+    } else {
+      text.textContent = `She picked: ${selected}`;
+      pill.textContent = selected;
+    }
+  }
 
-      ===== Deploy notes =====
-      1. Create a Netlify site and push a repo with the function file at netlify/functions/proxy.js.
-      2. In Netlify site settings, add an environment variable BDAY_SECRET with the Apps Script SECRET value.
-      3. Deploy — Netlify will provide a function URL like https://<site>.netlify.app/.netlify/functions/proxy
-      4. Use that URL in the page (localStorage key 'bt-proxy') so the client calls the proxy.
+  function loadHistory(){
+    const history = JSON.parse(localStorage.getItem('bt-history')||'[]');
+    historyEl.innerHTML = '';
+    if(history.length===0){ historyEl.innerHTML = '<div class="small">No selections yet</div>'; return; }
+    history.slice().reverse().forEach(item=>{
+      const d = document.createElement('div');
+      d.className = 'history-item';
+      d.innerHTML = `<div><strong>${escapeHtml(item.place)}</strong><div class="small">${new Date(item.timestamp).toLocaleString()}</div></div><div class="controls small">${item.remoteStatus?escapeHtml(item.remoteStatus):'local'}</div>`;
+      historyEl.appendChild(d);
+    });
+  }
 
-      This architecture keeps the Apps Script URL & SECRET private on the server.
-      */
+  function clearSelected(){
+    optionEls.forEach(el=>el.classList.remove('selected'));
+    selected = null; renderSelection();
+  }
 
+  optionEls.forEach(el=>{
+    el.addEventListener('click', ()=>{
+      optionEls.forEach(x=>x.classList.remove('selected'));
+      el.classList.add('selected');
+      selected = el.dataset.value;
+      renderSelection();
+    });
+    el.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
+    });
+  });
 
-      const optionsRoot = document.getElementById('options');
-      const optionEls = Array.from(optionsRoot.querySelectorAll('.option'));
-      const summary = document.getElementById('summary');
-      const pill = summary.querySelector('.pill');
-      const text = summary.querySelector('.text');
-      const customInput = document.getElementById('customPlace');
-      const addBtn = document.getElementById('addCustom');
-      const confirm = document.getElementById('confirm');
-      const reset = document.getElementById('reset');
-      const toast = document.getElementById('toast');
-      const historyEl = document.getElementById('history');
-      const endpointInput = document.getElementById('endpoint');
-      const saveEndpointBtn = document.getElementById('saveEndpoint');
-      const clearHistoryBtn = document.getElementById('clearHistory');
+  addBtn.addEventListener('click', ()=>{
+    const val = customInput.value.trim();
+    if(!val) return;
+    const lbl = document.createElement('label');
+    lbl.className = 'option selected';
+    lbl.setAttribute('data-value', val);
+    lbl.tabIndex = 0;
+    lbl.innerHTML = `<div class="emoji">📍</div><div><h3>${escapeHtml(val)}</h3><p>Custom pick</p></div>`;
+    optionEls.forEach(x=>x.classList.remove('selected'));
+    optionsRoot.appendChild(lbl);
+    optionEls.push(lbl);
+    selected = val;
+    renderSelection();
+    customInput.value = '';
+    lbl.addEventListener('click', ()=>{
+      optionEls.forEach(x=>x.classList.remove('selected'));
+      lbl.classList.add('selected'); selected = lbl.dataset.value; renderSelection();
+    });
+    lbl.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); lbl.click(); } });
+  });
 
-      let selected = null;
-      // read saved endpoint (but override with hardcode if present)
-      let endpoint = localStorage.getItem('bt-endpoint') || '';
-      endpointInput.value = endpoint;
-      
+  // Owner save button (stores bt-proxy and bt-token in localStorage)
+  saveEndpointBtn.addEventListener('click', ()=>{
+    const endpoint = endpointInput.value.trim();
+    const tokenVal = (tokenInputEl && tokenInputEl.value) ? tokenInputEl.value.trim() : '';
+    if(endpoint) localStorage.setItem('bt-proxy', endpoint); else localStorage.removeItem('bt-proxy');
+    if(tokenVal) localStorage.setItem('bt-token', tokenVal); else localStorage.removeItem('bt-token');
+    showToast(endpoint? 'Endpoint & token saved' : 'Settings cleared');
+    // reload so runtime picks up new values
+    try { window.location.reload(); } catch(e){}
+  });
 
-      function renderSelection(){
-        if(!selected){
-          text.textContent = 'No place selected yet. Choose one to let me know your pick.';
-          pill.textContent = '—';
-        } else {
-          text.textContent = `She picked: ${selected}`;
-          pill.textContent = selected;
-        }
-      }
+  confirm.addEventListener('click', ()=>{
+    if(!selected){ showToast('Please select a place first'); return; }
+    const payload = { timestamp: new Date().toISOString(), place: selected };
+    // store locally first
+    const history = JSON.parse(localStorage.getItem('bt-history')||'[]');
+    history.push(payload);
+    localStorage.setItem('bt-history', JSON.stringify(history));
+    renderSelection();
+    loadHistory();
 
-      function loadHistory(){
-        const history = JSON.parse(localStorage.getItem('bt-history')||'[]');
-        historyEl.innerHTML = '';
-        if(history.length===0){ historyEl.innerHTML = '<div class="small">No selections yet</div>'; return; }
-        history.slice().reverse().forEach(item=>{
-          const d = document.createElement('div');
-          d.className = 'history-item';
-          d.innerHTML = `<div><strong>${escapeHtml(item.place)}</strong><div class="small">${new Date(item.timestamp).toLocaleString()}</div></div><div class="controls small">${item.remoteStatus?escapeHtml(item.remoteStatus):'local'}</div>`;
-          historyEl.appendChild(d);
-        });
-      }
+    const runtimeProxy = localStorage.getItem('bt-proxy') || HARDCODE_PROXY;
+    if(runtimeProxy){
+      fetch(runtimeProxy, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ place: selected })
+      }).then(async res=>{
+        let statusText = res.status + ' ' + res.statusText;
+        let bodyText = '';
+        try{
+          bodyText = await res.text();
+          try{ const j = JSON.parse(bodyText); statusText = j.ok? 'remote-ok' : (j.error||statusText); }
+          catch(e){ statusText = bodyText || statusText; }
+        } catch(e){ statusText = 'remote-parse-failed'; }
 
-      function clearSelected(){
-        optionEls.forEach(el=>el.classList.remove('selected'));
-        selected = null; renderSelection();
-      }
-
-      optionEls.forEach(el=>{
-        el.addEventListener('click', ()=>{
-          optionEls.forEach(x=>x.classList.remove('selected'));
-          el.classList.add('selected');
-          selected = el.dataset.value;
-          renderSelection();
-        });
-        el.addEventListener('keydown', (e)=>{
-          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
-        });
-      });
-
-      addBtn.addEventListener('click', ()=>{
-        const val = customInput.value.trim();
-        if(!val) return;
-        const lbl = document.createElement('label');
-        lbl.className = 'option selected';
-        lbl.setAttribute('data-value', val);
-        lbl.tabIndex = 0;
-        lbl.innerHTML = `<div class="emoji">📍</div><div><h3>${escapeHtml(val)}</h3><p>Custom pick</p></div>`;
-        optionEls.forEach(x=>x.classList.remove('selected'));
-        optionsRoot.appendChild(lbl);
-        optionEls.push(lbl);
-        selected = val;
-        renderSelection();
-        customInput.value = '';
-        lbl.addEventListener('click', ()=>{
-          optionEls.forEach(x=>x.classList.remove('selected'));
-          lbl.classList.add('selected'); selected = lbl.dataset.value; renderSelection();
-        });
-        lbl.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); lbl.click(); } });
-      });
-
-      saveEndpointBtn.addEventListener('click', ()=>{
-        endpoint = endpointInput.value.trim();
-        localStorage.setItem('bt-endpoint', endpoint);
-        showToast(endpoint? 'Endpoint saved' : 'Endpoint cleared');
-      });
-
-      confirm.addEventListener('click', ()=>{
-        if(!selected){ showToast('Please select a place first'); return; }
-        const payload = { timestamp: new Date().toISOString(), place: selected, __token: EFFECTIVE_TOKEN };
-        // store locally
-        const history = JSON.parse(localStorage.getItem('bt-history')||'[]');
-        history.push(payload);
-        localStorage.setItem('bt-history', JSON.stringify(history));
-        renderSelection();
+        const h = JSON.parse(localStorage.getItem('bt-history')||'[]');
+        h[h.length-1].remoteStatus = statusText;
+        localStorage.setItem('bt-history', JSON.stringify(h));
         loadHistory();
-
-        if(PROXY_ENDPOINT){
-          // send remote
-          fetch(PROXY_ENDPOINT, {
-            method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ place: selected })
-          }).then(async res=>{
-            let statusText = res.status + ' ' + res.statusText;
-            let bodyText = '';
-            try{
-              bodyText = await res.text();
-              try{ const j = JSON.parse(bodyText); statusText = j.ok? 'remote-ok' : (j.error||statusText); }
-              catch(e){ statusText = bodyText || statusText; }
-            } catch(e){ statusText = 'remote-parse-failed'; }
-
-            const h = JSON.parse(localStorage.getItem('bt-history')||'[]');
-            h[h.length-1].remoteStatus = statusText;
-            localStorage.setItem('bt-history', JSON.stringify(h));
-            loadHistory();
-            showToast(`Saved — she chose ${selected} (remote: ${statusText})`);
-          }).catch(err=>{
-            const h = JSON.parse(localStorage.getItem('bt-history')||'[]');
-            h[h.length-1].remoteStatus = 'remote-failed';
-            localStorage.setItem('bt-history', JSON.stringify(h));
-            loadHistory();
-            console.warn('Remote save failed', err);
-            showToast('Saved locally — remote failed');
-          });
-        } else {
-          showToast(`Saved — she chose ${selected}`);
-        }
-
-        console.log('Birthday Treat Selection saved:', payload);
+        showToast(`Saved — she chose ${selected} (remote: ${statusText})`);
+      }).catch(err=>{
+        const h = JSON.parse(localStorage.getItem('bt-history')||'[]');
+        h[h.length-1].remoteStatus = 'remote-failed';
+        localStorage.setItem('bt-history', JSON.stringify(h));
+        loadHistory();
+        console.warn('Remote save failed', err);
+        showToast('Saved locally — remote failed');
       });
+    } else {
+      showToast(`Saved — she chose ${selected}`);
+    }
+    console.log('Birthday Treat Selection saved:', payload);
+  });
 
-      reset.addEventListener('click', ()=>{ clearSelected(); showToast('Selection reset'); });
+  reset.addEventListener('click', ()=>{ clearSelected(); showToast('Selection reset'); });
 
-      clearHistoryBtn.addEventListener('click', ()=>{ localStorage.removeItem('bt-history'); loadHistory(); showToast('History cleared'); });
+  clearHistoryBtn.addEventListener('click', ()=>{ localStorage.removeItem('bt-history'); loadHistory(); showToast('History cleared'); });
 
-      function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2600); }
-      function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2600); }
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-      // initial render
-      renderSelection(); loadHistory();
+  // initial render
+  renderSelection(); loadHistory();
 
-      window.BT = {
-        getLatest: ()=>{ const h = JSON.parse(localStorage.getItem('bt-history')||'[]'); return h[h.length-1]||null },
-        getAll: ()=>JSON.parse(localStorage.getItem('bt-history')||'[]'),
-        clearHistory: ()=>{ localStorage.removeItem('bt-history'); showToast('History cleared') }
-      };
+  window.BT = {
+    getLatest: ()=>{ const h = JSON.parse(localStorage.getItem('bt-history')||'[]'); return h[h.length-1]||null },
+    getAll: ()=>JSON.parse(localStorage.getItem('bt-history')||'[]'),
+    clearHistory: ()=>{ localStorage.removeItem('bt-history'); showToast('History cleared') }
+  };
 
-    })();
-  </script>
+})();
+</script>
+
 </body>
 </html>
